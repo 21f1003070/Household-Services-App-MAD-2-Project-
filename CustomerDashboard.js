@@ -181,14 +181,15 @@ const CustomerDashboard = {
       bookedServices: [],
       professional:"",
       professional_id:"",
+      professional_email:"",
       isFormOpen: false, 
       isEditable: false,
       bookingDetails: { id: null, remarks: "", date: "" },
-      pin:null,  // List of booked services' IDs
-      FeedbackPage: false, // Default visibility for feedback page
-      feedbackText: '', // Feedback input
+      pin:null,  
+      FeedbackPage: false, 
+      feedbackText: '', 
       feedbackRating: 1,
-      currentServiceId: null // Stores the service ID for feedback submission
+      currentServiceId: null 
     };
   },
 
@@ -222,7 +223,6 @@ const CustomerDashboard = {
   
       if (!res.ok) {
         console.error("Error fetching data:", res.status, await res.text());
-        console.log("xxx")
         return;
       }
   
@@ -254,7 +254,7 @@ const CustomerDashboard = {
       this.isFormOpen = true;
 
       if (editMode && this.bookedServices[service.id]) {
-        // If editing, prefill form with existing details
+        
         this.bookingDetails = { ...this.bookedServices[service.id] };
       } else {
         // If booking new, clear form and set service ID
@@ -410,8 +410,8 @@ const CustomerDashboard = {
 
           // Identify services booked by the user that are not closed
           this.bookedServices = activeServices
-            .filter(request => request.request_status !== 'closed')  // Exclude closed services
-            .map(request => request.service_id);  // Collect booked service IDs
+            .filter(request => request.request_status !== 'closed')  
+            .map(request => request.service_id);  
           
         } else {
           console.error("Error fetching service status:", res.statusText);
@@ -430,15 +430,15 @@ const CustomerDashboard = {
 
     closeFeedback() {
       this.FeedbackPage = false;
-      this.feedbackText = ''; // Clear feedback input
+      this.feedbackText = ''; 
       this.feedbackRating = 1;
       this.currentServiceId = null;
     },
 
     async submitFeedback() {
       const myfeedback = {
-        rating: this.feedbackRating,  // Rating for the feedback
-        comments: this.feedbackText,  // Comments from the textarea
+        rating: this.feedbackRating,  
+        comments: this.feedbackText,  
         service_id: this.currentServiceId
       };
 

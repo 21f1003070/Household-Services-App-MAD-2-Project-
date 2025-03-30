@@ -50,9 +50,9 @@ const AdminDashboard = {
             </div>
             <div>
             <button type="submit" class="btn btn-primary">
-              {{ isUpdate ? 'Update' : 'Create' }} Service
-            </div>
+              {{ isUpdate ? 'Update' : 'Create' }} Service           
             </button>
+            </div>
           </form>
   
           <!-- List of all Services -->
@@ -342,7 +342,7 @@ const AdminDashboard = {
         console.error("Fetch failed:", error);
       };
 
-          // Fetching service requests
+          
     const serviceReqRes = await fetch(window.location.origin + "/api/service_requests", {
       headers: {
         "Authentication-Token": sessionStorage.getItem("token"),
@@ -350,7 +350,7 @@ const AdminDashboard = {
     });
 
     if (serviceReqRes.ok) {
-      this.Service_req = await serviceReqRes.json();
+      this.service_requests = await serviceReqRes.json();
     } else {
       console.error("Error fetching service requests:", serviceReqRes.statusText);
     };

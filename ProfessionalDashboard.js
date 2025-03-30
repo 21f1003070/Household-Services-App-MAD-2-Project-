@@ -163,17 +163,17 @@ const ProfessionalDashboard = {
       },
   
       async complete(serviceId) {
-        console.log('Completing service with ID:', serviceId); // Log the service ID
+        console.log('Completing service with ID:', serviceId); 
         try {
           const res = await fetch(`/api/service_requests/${serviceId}`, {
             method: 'PATCH',
             headers: {
               "Content-Type": "application/json",
-              "Authentication-Token": sessionStorage.getItem("token"), // Ensure token is in session storage
+              "Authentication-Token": sessionStorage.getItem("token"), 
             },
             body: JSON.stringify({
-              request_status: 'closed', // Set the status to 'closed'
-              date_of_completion: new Date().toISOString() // Store the current date as completion date
+              request_status: 'closed', 
+              date_of_completion: new Date().toISOString() 
             })
           });
       

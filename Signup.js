@@ -69,10 +69,10 @@ const Signup = {
                                         <label for="description" class="form-label">Service Description</label>
                                         <textarea v-model="description" id="description" class="form-control" placeholder="Describe your services" required></textarea>
                                     </div>
-                                    <div class="mb-3">
+                                    <!--<div class="mb-3">
                                         <label for="profile" class="form-label">Profile Doc</label>
-                                        <input type = "file" v-model="profile" id="description" class="form-control" placeholder="Upload your profile doc">
-                                    </div>
+                                        <input type = "file" v-model="profile" id="profile" class="form-control" placeholder="Upload your profile doc">
+                                    </div>-->
                                 </div>
 
                                 <button type="submit" class="btn btn-primary w-100" @click="Register">Register</button>
@@ -124,39 +124,53 @@ const Signup = {
   methods: {
 
     async Register() {
-      const origin = window.location.origin;
-      const url = `${origin}/register`;
-      const res = await fetch(url,{
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: this.email,
-          password: this.password,
-          full_name: this.full_name,
-          phone: this.phone,
-          pin: this.pin,
-          address: this.address,
-          role: this.role,
-          experience: this.role === 'professional' ? this.experience : null,  // Include only if the user is Service Professional
-          service_type: this.role === 'professional' ? this.service_type : null,  // Include only if the user is Service Professional
-          description: this.role === 'professional' ? this.description : null,  // Include only if the user is Service Professional
-          profile: this.role === 'professional' ? this.profile : null,  // Include only if the user is Service Professional
-        }),
-        credentials: "same-origin",
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        console.log(data);
-        // Handle successful sign up, e.g., redirect or store token
-        router.push("/login");
-      } else {
-        const errorData = await res.json();
-        this.error = errorData.message || "Sign up failed. Please try again.";
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // Timeout after 10 seconds
+      
+        try {
+          const origin = window.location.origin;
+          const url = `${origin}/register`;
+          const res = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: this.email,
+              password: this.password,
+              full_name: this.full_name,
+              phone: this.phone,
+              pin: this.pin,
+              address: this.address,
+              role: this.role,
+              experience: this.role === 'professional' ? this.experience : null,
+              service_type: this.role === 'professional' ? this.service_type : null,
+              description: this.role === 'professional' ? this.description : null,
+              profile: this.role === 'professional' ? this.profile : null,
+            }),
+            signal: controller.signal,
+            credentials: "same-origin",
+          });
+      
+          clearTimeout(timeoutId); // Clear the timeout if request is successful
+      
+          if (res.ok) {
+            const data = await res.json();
+            console.log(data);
+            router.push("/login");
+          } else {
+            const errorData = await res.json();
+            this.error = errorData.message || "Sign up failed. Please try again.";
+          }
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            this.error = 'Request timed out. Please try again.';
+          } else {
+            this.error = error.message || 'Something went wrong. Please try again.';
+          }
+        }
       }
-    },
+      
  
   },
 };

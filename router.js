@@ -4,7 +4,8 @@ import Register from './Signup.js';
 import AdminDashboard from "./AdminDashboard.js";
 import ProfessionalDashboard from "./ProfessionalDashboard.js";
 import CustomerDashboard from "./CustomerDashboard.js";
-
+import AdminSearch from "./AdminSearch.js";
+import CustomerSearch from "./CustomerSearch.js";
 
 import store from "./store.js";
 
@@ -16,7 +17,8 @@ const routes = [
     { path: "/admin-dashboard", component: AdminDashboard, meta: { requiresLogin: true, role: "admin" } },
     { path: "/professional-dashboard", component: ProfessionalDashboard, meta: { requiresLogin: true, role: "professional" } },
     { path: "/customer-dashboard", component: CustomerDashboard, meta: { requiresLogin: true, role: "customer" } },
-    
+    { path: "/admin-search", component: AdminSearch},
+    { path: "/customer-search", component: CustomerSearch},
 
 
 ];
