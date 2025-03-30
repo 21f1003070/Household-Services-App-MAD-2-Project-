@@ -67,15 +67,15 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, db):
             experience = data.get('experience')
             description_of_service = data.get('description_of_service')
  
-            file = request.files.get("upload_profile")  # Corrected file access
-            url = ""
-            if file and file.filename:  # Check if file exists and has a valid filename
-                file_name = secure_filename(file.filename)  # Secure the file name
+            #file = request.files.get("upload_profile")  # Corrected file access
+            #url = ""
+            #if file and file.filename:  # Check if file exists and has a valid filename
+                #file_name = secure_filename(file.filename)  # Secure the file name
                 # Save the file with a unique filename
-                url = './static/' + full_name + "_" + file_name
-                if not os.path.exists('./static/'):
-                    os.makedirs('./static/')  # Create directory if it doesn't exist
-                file.save(url)  # Save the file to the server
+                #url = './static/' + full_name + "_" + file_name
+                #if not os.path.exists('./static/'):
+                    #os.makedirs('./static/')  # Create directory if it doesn't exist
+                #file.save(url)  # Save the file to the server
 
         if not email or not password or role not in ['customer', 'professional']:
             return jsonify({"message" : "invalid input"})
@@ -89,7 +89,7 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, db):
         elif role == 'customer':
             active = True
         try:    
-            user_datastore.create_user(email = email, password = hash_password(password), full_name=full_name, pin = pin, phone = phone, roles = [role], address = address, active = active, experience = experience, service_type = service_type, description_of_service=description_of_service, profile_doc=url )
+            user_datastore.create_user(email = email, password = hash_password(password), full_name=full_name, pin = pin, phone = phone, roles = [role], address = address, active = active, experience = experience, service_type = service_type, description_of_service=description_of_service )
             db.session.commit()
         except:
             print('error while creating')
@@ -168,8 +168,43 @@ def create_view(app, user_datastore : SQLAlchemyUserDatastore, db):
                     'description': service.service_description,
                     'professional_id': professional.id,
                     'professional_name': professional.full_name,
-                    'professional_phone': professional.phone
+                    'professional_phone': professional.phone,
+                    'professional_email': professional.email
                     })
         return jsonify(services), 200
        
 
+    #building route for searching by customer
+    @app.route('/services_search/<int:customer_id>', methods=['GET','POST'])
+    def services_search(customer_id):
+        customer=User.query.filter_by(id=customer_id).first()
+        pincode=customer.pin 
+        professionals = User.query.filter(
+        User.roles.any(Role.name == 'professional'),
+        User.active == True,
+        User.pin == pincode
+    ).all()
+        print(professionals)
+
+        services_set = set()
+        #for professional in professionals:
+            #professional_services = Service.query.filter_by(name=professional.service_type).all()
+        services1 = []
+        query = request.args.get('query', '')
+        for professional in professionals:
+            # matching_services = Service.query.filter_by(service_type=professional.service_type).all()
+            services = Services.query.filter(and_(Services.service_type == professional.service_type,Services.name.ilike(f"%{query}%") if query else False ))
+            matching_services=services.all()
+            # if query:
+            #     services = services.filter(Service.name.ilike(f"%{query}%")) 
+            for service in matching_services:
+                services1.append({
+                    'id': service.id,
+                    'name': service.name,
+                    'price': service.service_charges,
+                    'description': service.service_description,
+                    'professional_id': professional.id,
+                    'professional_name': professional.full_name,
+                    'professional_phone': professional.phone
+                    })
+        return jsonify(services1), 200

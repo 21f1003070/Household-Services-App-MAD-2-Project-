@@ -11,6 +11,8 @@ from flask_login import current_user
 from werkzeug.security import check_password_hash,  generate_password_hash
 import traceback
 import json 
+from sqlalchemy import or_,cast,String
+from sqlalchemy.orm import joinedload
 
 
 
@@ -163,10 +165,10 @@ class ServiceRequestResourceAPI(Resource):
 
         # Createing new service request
         service_request = Service_Requests(
-            customer_id=customer.id,  # Automatically get the current customer
+            customer_id=customer.id,  
             professional_id=professional.id if professional else None,  
             service_id=service.id,
-            remarks=data.get('remarks', "No remarks"),
+            service_remarks=data.get('remarks', "No remarks"),
             request_status="requested"  
         )
 
@@ -174,6 +176,12 @@ class ServiceRequestResourceAPI(Resource):
         db.session.commit()
 
         return {'message': 'Successfully made Request', 'service_request_id': service_request.id, 'request_status': service_request.request_status}, 201
+
+
+api.add_resource(ServiceRequestResourceAPI, '/service_requests')
+
+
+class ServiceRequestResourcePatchAPI(Resource):
 
     @auth_required('token')
     @marshal_with(service_req_fields)
@@ -195,10 +203,10 @@ class ServiceRequestResourceAPI(Resource):
                 service_request.date_of_completion = datetime.utcnow()
 
         db.session.commit()
-        return {'message': 'Service Request status updated successfully', 'request_status': service_request.request_status,'remarks':service_request.remarks}, 200
+        return {'message': 'Service Request status updated successfully', 'request_status': service_request.request_status,'service_remarks':""}, 200
 
 
-api.add_resource(ServiceRequestResourceAPI, '/service_requests', '/service_requests/<int:service_request_id>')
+api.add_resource(ServiceRequestResourcePatchAPI, '/service_requests/<int:service_request_id>')
 
 
 
@@ -243,6 +251,66 @@ api.add_resource(ServiceProfessionalResourcesAPI, '/service_professional/<int:us
 
 
 
+
+# API section for Searching for admin
+
+class SearchAPI(Resource):
+    @auth_required("token")
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('search', help="Search Key", required=True)
+        args = parser.parse_args()
+        search_value = args.get('search')
+        search = "%{}%".format(search_value)
+        search1 = f"%{search_value}%"
+        
+        user = current_user  
+
+        if any(role.name == 'admin' for role in user.roles):
+            services = Services.query.filter(Services.name.like(search)).all()
+            professional = User.query.join(User.roles).filter(Role.name=='professional').filter(or_(User.full_name.ilike(search1),cast(User.pin,String).ilike(search1))).options(joinedload(User.roles)).all()
+            customer = User.query.join(User.roles).filter(Role.name=='customer').filter(or_(User.full_name.ilike(search1),cast(User.pin,String).ilike(search1))).options(joinedload(User.roles)).all()
+            print(professional)
+
+            # service_requests = Service_Requests.query.filter(Service_Requests.remarks.like(search)).union(
+            #     Service_Requests.query.filter(Service_Requests.service_id.in_(
+            #         Services.query.filter(Services.name.like(search)).with_entities(Services.id)
+            #     ))
+            # ).all()
+        elif any(role.name == 'professional' for role in user.roles):
+            services = Services.query.filter(Services.name.like(search)).all()
+            service_requests = Service_Requests.query.filter_by(professional_id=user.id).all()
+        elif any(role.name == 'customer' for role in user.roles):
+            services = Services.query.filter(Services.name.like(search)).all()
+            service_requests = Service_Requests.query.filter_by(customer_id=user.id).all()
+        else:
+            return {'message': 'Unauthorized'}, 403
+
+        return {
+            "professionals1" : marshal(professional,professional_fields),
+            "customers": marshal(customer,customer_fields),
+            "services": marshal(services, service_fields),
+
+        }
+
+api.add_resource(SearchAPI, '/search_services')
+
+
+# @app.route('/api/update_block_status', methods=['POST'])
+# def update_block_status():
+#     data = request.json
+#     user_id = data.get('user_id')
+#     isBlocked = data.get('isBlocked')
+
+#     # Simulate updating in the database
+#     if user_id in users:
+#         users[user_id]['isBlocked'] = isBlocked
+#         return jsonify({"message": "User status updated successfully"}), 200
+#     else:
+#         return jsonify({"error": "User not found"}), 404
+
+
+
 # API section for Charts
 
 class SummaryAPI(Resource):
@@ -254,9 +322,9 @@ class SummaryAPI(Resource):
             active_users = User.query.filter_by(active=1).count()  # Assuming 'active' is a Boolean field
             inactive_users = User.query.filter_by(active=False).count()
 
-            accepted_requests = Service_Requests.query.filter_by(service_status='accepted').count()
-            rejected_requests = Service_Requests.query.filter_by(service_status='rejected').count()
-            closed_requests = Service_Requests.query.filter_by(service_status='closed').count()
+            accepted_requests = Service_Requests.query.filter_by(request_status='accepted').count()
+            rejected_requests = Service_Requests.query.filter_by(request_status='rejected').count()
+            closed_requests = Service_Requests.query.filter_by(request_status='closed').count()
 
 
             summary_admin = {
@@ -271,9 +339,9 @@ class SummaryAPI(Resource):
             }
             user = current_user
             if any(role.name == 'customer' for role in user.roles):
-                accepted_requests = Service_Requests.query.filter_by(service_status='accepted',customer_id=user.id).count()
-                rejected_requests = Service_Requests.query.filter_by(service_status='rejected',customer_id=user.id).count()
-                closed_requests = Service_Requests.query.filter_by(service_status='closed',customer_id=user.id).count()
+                accepted_requests = Service_Requests.query.filter_by(request_status='accepted',customer_id=user.id).count()
+                rejected_requests = Service_Requests.query.filter_by(request_status='rejected',customer_id=user.id).count()
+                closed_requests = Service_Requests.query.filter_by(request_status='closed',customer_id=user.id).count()
                 summary_customer = {
                     "AcceptedRequests": accepted_requests,
                     "RejectedRequests": rejected_requests,
@@ -327,7 +395,7 @@ class FeedbackResourceAPI(Resource):
 
 
     @auth_required('token')
-    def post(self):
+    def post(self,service_id):
         #print(current_user)
         args = feedback_parser.parse_args()
         # print(args)
