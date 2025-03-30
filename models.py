@@ -18,7 +18,7 @@ class User(db.Model, UserMixin):
     service_type = db.Column(db.String)
     experience = db.Column(db.Integer)
     description_of_service = db.Column(db.String)
-    profile_doc = db.Column(db.String,nullable = False, default="None")
+    profile_doc = db.Column(db.String, default="None")
     active = db.Column(db.Boolean)
     fs_uniquifier = db.Column(db.String(), nullable = False)
     roles = db.relationship('Role', secondary = 'user_roles')
@@ -66,15 +66,8 @@ class Service_Requests(db.Model):
     customer = db.relationship('User', foreign_keys= [customer_id])
 
     def __repr__(self):
-        return f"<ServiceRequest(id={self.id}, service_status={self.service_status})>"
+        return f"<Service_Requests(id={self.id}, request_status={self.request_status})>"
 
-
-class DailyVisit(db.Model):
-    __tablename__ = 'daily_visits'
-    id = db.Column(db.Integer, autoincrement=True, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    date = db.Column(db.Date)
-    user = db.relationship('User', backref='visits')
 
 
 class Feedbacks(db.Model):
@@ -91,4 +84,4 @@ class Feedbacks(db.Model):
     customer = db.relationship('User', backref='feedbacks')
 
     def __repr__(self):
-        return f"<Feedback(id={self.id}, rating={self.rating}, service_id={self.service_id})>"
+        return f"<Feedbacks(id={self.id}, rating={self.rating}, service_id={self.service_id})>"
